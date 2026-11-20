@@ -1,0 +1,34 @@
+name: Check custom domain
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - .github/workflows/check-domain.yml
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check public DNS records
+        shell: bash
+        run: |
+          for domain in damascene-eng.com www.damascene-eng.com; do
+            echo "==== DNS: $domain ===="
+            echo "--- A records ---"
+            dig "$domain" A +noall +answer
+            echo "--- AAAA records ---"
+            dig "$domain" AAAA +noall +answer
+            echo "--- CNAME records ---"
+            dig "$domain" CNAME +noall +answer
+            echo "--- NS records ---"
+            dig "$domain" NS +noall +answer
+          done
+
+      - name: Check HTTPS response
+        shell: bash
+        run: |
+          for url in https://damascene-eng.com https://www.damascene-eng.com https://alsahou.github.io/-/; do
+            echo "==== URL: $url ===="
+            curl -ILsS --max-time 20 "$url" -o /dev/null -w 'http_code=%{http_code} remote_ip=%{remote_ip} effective_url=%{url_effective} ssl_verify_result=%{ssl_verify_result}\n' || echo "HTTP request failed"
+          done
